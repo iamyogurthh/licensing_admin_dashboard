@@ -1,0 +1,195 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ======================================================
+// Admin
+// ======================================================
+
+model Admin {
+  id           String  @id @default(cuid())
+  name         String
+  email        String  @unique
+  passwordHash String
+  isActive     Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ======================================================
+// CUSTOMER
+// ======================================================
+
+model Customer {
+  id      String  @id @default(cuid())
+  name    String
+  email   String?
+  phone   String?
+  company String?
+  address String?
+  notes   String?
+
+  licenses License[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([email])
+  @@index([phone])
+}
+
+// ======================================================
+// PRODUCT
+// ======================================================
+
+model Product {
+  id          String  @id @default(cuid())
+  name        String
+  code        String  @unique
+  description String?
+  version     String?
+  isActive    Boolean @default(true)
+
+  licenses License[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([isActive])
+}
+
+// ======================================================
+// LICENSE
+// ======================================================
+
+model License {
+  id String @id @default(cuid())
+
+  licenseKey String @unique
+
+  type   LicenseType   @default(PERPETUAL)
+  status LicenseStatus @default(ACTIVE)
+
+  issuedAt  DateTime  @default(now())
+  expiresAt DateTime?
+
+  maxInstallations Int @default(1)
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  installations Installation[]
+  events        LicenseEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([productId])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+// ======================================================
+// INSTALLATION
+// ======================================================
+
+model Installation {
+  id String @id @default(cuid())
+
+  licenseId String
+  license   License @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+
+  machineId String
+
+  deviceName      String?
+  operatingSystem String?
+  appVersion      String?
+
+  activatedAt   DateTime  @default(now())
+  lastSeenAt    DateTime?
+  deactivatedAt DateTime?
+
+  status InstallationStatus @default(ACTIVE)
+
+  events LicenseEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([licenseId, machineId])
+  @@index([machineId])
+  @@index([licenseId])
+  @@index([status])
+}
+
+// ======================================================
+// LICENSE EVENT
+// ======================================================
+
+model LicenseEvent {
+  id String @id @default(cuid())
+
+  licenseId String
+  license   License @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+
+  installationId String?
+  installation   Installation? @relation(fields: [installationId], references: [id], onDelete: SetNull)
+
+  type LicenseEventType
+
+  ipAddress String?
+  userAgent String?
+  details   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([licenseId])
+  @@index([installationId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// ======================================================
+// ENUMS
+// ======================================================
+
+enum LicenseType {
+  TRIAL
+  MONTHLY
+  YEARLY
+  PERPETUAL
+}
+
+enum LicenseStatus {
+  ACTIVE
+  SUSPENDED
+  REVOKED
+  EXPIRED
+}
+
+enum InstallationStatus {
+  ACTIVE
+  DEACTIVATED
+  BLOCKED
+}
+
+enum LicenseEventType {
+  CREATED
+  ACTIVATED
+  VALIDATED
+  DEACTIVATED
+  SUSPENDED
+  REVOKED
+  EXPIRED
+}
