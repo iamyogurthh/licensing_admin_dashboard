@@ -61,7 +61,30 @@ export async function POST(request: Request) {
     }
 
     /*
-     * Check expiration before checking the license status.
+     * Product must still be active.
+     */
+    if (!license.product.isActive) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: 'PRODUCT_INACTIVE',
+          message: 'This product is no longer active.',
+          license: {
+            licenseKey: license.licenseKey,
+            status: license.status,
+            expiresAt: license.expiresAt,
+            productName: license.product.name,
+          },
+        },
+        { status: 403 },
+      );
+    }
+
+    /*
+     * Check expiration by date.
+     *
+     * If the license is already expired but the database
+     * still says ACTIVE, update it to EXPIRED.
      */
     if (license.expiresAt && license.expiresAt <= new Date()) {
       if (license.status === 'ACTIVE') {
@@ -88,28 +111,36 @@ export async function POST(request: Request) {
           success: false,
           code: 'LICENSE_EXPIRED',
           message: 'License has expired.',
+          license: {
+            licenseKey: license.licenseKey,
+            status: 'EXPIRED',
+            expiresAt: license.expiresAt,
+            productName: license.product.name,
+          },
         },
         { status: 403 },
       );
     }
 
+    /*
+     * If the license is suspended, revoked, or otherwise
+     * inactive, return its current status to the desktop app.
+     *
+     * This is important because the HMS client must be able
+     * to update its local encrypted license state.
+     */
     if (license.status !== 'ACTIVE') {
       return NextResponse.json(
         {
           success: false,
           code: 'LICENSE_NOT_ACTIVE',
           message: `License is ${license.status.toLowerCase()}.`,
-        },
-        { status: 403 },
-      );
-    }
-
-    if (!license.product.isActive) {
-      return NextResponse.json(
-        {
-          success: false,
-          code: 'PRODUCT_INACTIVE',
-          message: 'This product is no longer active.',
+          license: {
+            licenseKey: license.licenseKey,
+            status: license.status,
+            expiresAt: license.expiresAt,
+            productName: license.product.name,
+          },
         },
         { status: 403 },
       );
@@ -117,6 +148,9 @@ export async function POST(request: Request) {
 
     const installation = license.installations[0];
 
+    /*
+     * The license exists, but this machine was never activated.
+     */
     if (!installation) {
       return NextResponse.json(
         {
@@ -128,6 +162,9 @@ export async function POST(request: Request) {
       );
     }
 
+    /*
+     * Installation was explicitly blocked.
+     */
     if (installation.status === 'BLOCKED') {
       return NextResponse.json(
         {
@@ -139,6 +176,9 @@ export async function POST(request: Request) {
       );
     }
 
+    /*
+     * Installation exists but is not active.
+     */
     if (installation.status !== 'ACTIVE') {
       return NextResponse.json(
         {
@@ -152,6 +192,10 @@ export async function POST(request: Request) {
 
     const now = new Date();
 
+    /*
+     * Update the last time this installation successfully
+     * contacted the licensing server.
+     */
     await prisma.installation.update({
       where: {
         id: installation.id,
@@ -162,6 +206,9 @@ export async function POST(request: Request) {
       },
     });
 
+    /*
+     * Record the successful validation.
+     */
     await prisma.licenseEvent.create({
       data: {
         licenseId: license.id,
@@ -171,10 +218,14 @@ export async function POST(request: Request) {
       },
     });
 
+    /*
+     * License is valid and the machine is registered.
+     */
     return NextResponse.json({
       success: true,
       code: 'VALID',
       message: 'License is valid.',
+
       license: {
         id: license.id,
         licenseKey: license.licenseKey,
@@ -182,13 +233,21 @@ export async function POST(request: Request) {
         status: license.status,
         expiresAt: license.expiresAt,
         maxInstallations: license.maxInstallations,
+
+        /*
+         * These fields are used by the HMS client when
+         * updating its local license information.
+         */
+        productName: license.product.name,
       },
+
       installation: {
         id: installation.id,
         machineId: installation.machineId,
         status: installation.status,
         lastSeenAt: now,
       },
+
       product: {
         name: license.product.name,
         code: license.product.code,
