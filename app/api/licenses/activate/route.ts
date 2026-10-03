@@ -59,6 +59,7 @@ export async function POST(request: Request) {
       },
       include: {
         product: true,
+        customer: true,
         installations: true,
       },
     });
@@ -191,17 +192,39 @@ export async function POST(request: Request) {
           success: true,
           code: 'ALREADY_ACTIVATED',
           message: 'This machine is already activated.',
+
           license: {
             id: license.id,
             licenseKey: license.licenseKey,
             type: license.type,
             status: license.status,
             expiresAt: license.expiresAt,
+            maxInstallations: license.maxInstallations,
+
+            // Customer information
+            customerName: license.customer.name,
+
+            // Product information
+            productName: license.product.name,
           },
+
           installation: {
             id: updatedInstallation.id,
             machineId: updatedInstallation.machineId,
             status: updatedInstallation.status,
+          },
+
+          product: {
+            name: license.product.name,
+            code: license.product.code,
+            version: license.product.version,
+          },
+
+          customer: {
+            name: license.customer.name,
+            email: license.customer.email,
+            phone: license.customer.phone,
+            company: license.customer.company,
           },
         });
       }
@@ -240,6 +263,7 @@ export async function POST(request: Request) {
             success: true,
             code: 'ACTIVATED',
             message: 'License reactivated successfully.',
+
             license: {
               id: license.id,
               licenseKey: license.licenseKey,
@@ -247,17 +271,32 @@ export async function POST(request: Request) {
               status: license.status,
               expiresAt: license.expiresAt,
               maxInstallations: license.maxInstallations,
+
+              // Customer information
+              customerName: license.customer.name,
+
+              // Product information
+              productName: license.product.name,
             },
+
             installation: {
               id: installation.id,
               machineId: installation.machineId,
               status: installation.status,
               activatedAt: installation.activatedAt,
             },
+
             product: {
               name: license.product.name,
               code: license.product.code,
               version: license.product.version,
+            },
+
+            customer: {
+              name: license.customer.name,
+              email: license.customer.email,
+              phone: license.customer.phone,
+              company: license.customer.company,
             },
           },
           { status: 200 },
@@ -327,6 +366,7 @@ export async function POST(request: Request) {
         success: true,
         code: 'ACTIVATED',
         message: 'License activated successfully.',
+
         license: {
           id: license.id,
           licenseKey: license.licenseKey,
@@ -334,17 +374,32 @@ export async function POST(request: Request) {
           status: license.status,
           expiresAt: license.expiresAt,
           maxInstallations: license.maxInstallations,
+
+          // Customer information
+          customerName: license.customer.name,
+
+          // Product information
+          productName: license.product.name,
         },
+
         installation: {
           id: installation.id,
           machineId: installation.machineId,
           status: installation.status,
           activatedAt: installation.activatedAt,
         },
+
         product: {
           name: license.product.name,
           code: license.product.code,
           version: license.product.version,
+        },
+
+        customer: {
+          name: license.customer.name,
+          email: license.customer.email,
+          phone: license.customer.phone,
+          company: license.customer.company,
         },
       },
       { status: 201 },
