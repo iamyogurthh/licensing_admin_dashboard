@@ -41,6 +41,7 @@ export async function POST(request: Request) {
       },
       include: {
         product: true,
+        customer: true,
         installations: {
           where: {
             machineId,
@@ -69,11 +70,13 @@ export async function POST(request: Request) {
           success: false,
           code: 'PRODUCT_INACTIVE',
           message: 'This product is no longer active.',
+
           license: {
             licenseKey: license.licenseKey,
             status: license.status,
             expiresAt: license.expiresAt,
             productName: license.product.name,
+            customerName: license.customer.name,
           },
         },
         { status: 403 },
@@ -111,11 +114,13 @@ export async function POST(request: Request) {
           success: false,
           code: 'LICENSE_EXPIRED',
           message: 'License has expired.',
+
           license: {
             licenseKey: license.licenseKey,
             status: 'EXPIRED',
             expiresAt: license.expiresAt,
             productName: license.product.name,
+            customerName: license.customer.name,
           },
         },
         { status: 403 },
@@ -125,9 +130,6 @@ export async function POST(request: Request) {
     /*
      * If the license is suspended, revoked, or otherwise
      * inactive, return its current status to the desktop app.
-     *
-     * This is important because the HMS client must be able
-     * to update its local encrypted license state.
      */
     if (license.status !== 'ACTIVE') {
       return NextResponse.json(
@@ -135,11 +137,13 @@ export async function POST(request: Request) {
           success: false,
           code: 'LICENSE_NOT_ACTIVE',
           message: `License is ${license.status.toLowerCase()}.`,
+
           license: {
             licenseKey: license.licenseKey,
             status: license.status,
             expiresAt: license.expiresAt,
             productName: license.product.name,
+            customerName: license.customer.name,
           },
         },
         { status: 403 },
@@ -235,10 +239,12 @@ export async function POST(request: Request) {
         maxInstallations: license.maxInstallations,
 
         /*
-         * These fields are used by the HMS client when
-         * updating its local license information.
+         * These fields are used by the HMS client
+         * when updating its local license information.
          */
         productName: license.product.name,
+
+        customerName: license.customer.name,
       },
 
       installation: {
@@ -252,6 +258,13 @@ export async function POST(request: Request) {
         name: license.product.name,
         code: license.product.code,
         version: license.product.version,
+      },
+
+      customer: {
+        name: license.customer.name,
+        email: license.customer.email,
+        phone: license.customer.phone,
+        company: license.customer.company,
       },
     });
   } catch (error) {
