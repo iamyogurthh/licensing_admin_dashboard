@@ -196,7 +196,7 @@ export async function POST(request: Request) {
           license: {
             id: license.id,
             licenseKey: license.licenseKey,
-            type: license.type,
+            licenseType: license.type,
             status: license.status,
             expiresAt: license.expiresAt,
             maxInstallations: license.maxInstallations,
@@ -267,7 +267,7 @@ export async function POST(request: Request) {
             license: {
               id: license.id,
               licenseKey: license.licenseKey,
-              type: license.type,
+              licenseType: license.type,
               status: license.status,
               expiresAt: license.expiresAt,
               maxInstallations: license.maxInstallations,
@@ -370,7 +370,7 @@ export async function POST(request: Request) {
         license: {
           id: license.id,
           licenseKey: license.licenseKey,
-          type: license.type,
+          licenseType: license.type,
           status: license.status,
           expiresAt: license.expiresAt,
           maxInstallations: license.maxInstallations,
